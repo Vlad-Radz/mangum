@@ -25,7 +25,18 @@ from mangum import Mangum
     ],
     indirect=["mock_http_event"],
 )
-def test_http_request(mock_http_event, query_string) -> None:
+def test_http_request(mock_http_event: dict, query_string: bytes) -> None:
+    """
+    Tests the following things:
+    - if the scope was constructed correctly,
+    - if the handler, which is an app wrapped by Mangum adapter, returns expected response.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    * **query_string** - a parametrized bytes string, representing an URL query string,
+    expected to be part of the constructed scope.
+    """
+
     async def app(scope, receive, send):
         assert scope == {
             "asgi": {"version": "3.0"},
@@ -145,7 +156,15 @@ def test_http_request(mock_http_event, query_string) -> None:
 @pytest.mark.parametrize(
     "mock_http_event", [["GET", None, {"name": ["me", "you"]}]], indirect=True
 )
-def test_http_response(mock_http_event) -> None:
+def test_http_response(mock_http_event: dict) -> None:  # TODO: do we need this test? Isn't it the same as the previous one?
+    """
+    Tests the following things:
+    - if the scope was constructed correctly,
+    - if the handler, which is an app wrapped by Mangum adapter, returns expected response.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         assert scope == {
             "asgi": {"version": "3.0"},
@@ -260,7 +279,18 @@ def test_http_response(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", "123", None]], indirect=True)
-def test_http_response_with_body(mock_http_event) -> None:
+def test_http_response_with_body(mock_http_event: dict) -> None:
+    """
+    The previous test passed to the fixture either only HTTP method,
+    or HTTP method and URL query parameters.
+
+    This test also passes a string, which should represent the body of the incoming
+    event, does some manipulation with this body and checks, if adapter returns
+    an expected response.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         assert scope["type"] == "http"
 
@@ -297,7 +327,14 @@ def test_http_response_with_body(mock_http_event) -> None:
 @pytest.mark.parametrize(
     "mock_http_event", [["GET", base64.b64encode(b"123"), None]], indirect=True
 )
-def test_http_binary_request_with_body(mock_http_event) -> None:
+def test_http_binary_request_with_body(mock_http_event: dict) -> None:
+    """
+    Checks if adapter returns an expected response for body in Base64 bytes format
+    (and not a string, as previous test did).
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         assert scope["type"] == "http"
 
@@ -335,6 +372,13 @@ def test_http_binary_request_with_body(mock_http_event) -> None:
     "mock_http_event", [["GET", base64.b64encode(b"123"), None]], indirect=True
 )
 def test_http_binary_request_and_response(mock_http_event) -> None:
+    """
+    Checks if adapter returns an expected response for body in Base64 bytes format,
+    and if adapter returns Base64-encoded body, when this is expected.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         assert scope["type"] == "http"
 
@@ -369,7 +413,13 @@ def test_http_binary_request_and_response(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", None, None]], indirect=True)
-def test_http_exception(mock_http_event) -> None:
+def test_http_exception(mock_http_event: dict) -> None:
+    """
+    Checks how adapter handles exceptions raised in the app.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         await send({"type": "http.response.start", "status": 200})
         raise Exception()
@@ -387,7 +437,14 @@ def test_http_exception(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", None, None]], indirect=True)
-def test_http_exception_handler(mock_http_event) -> None:
+def test_http_exception_handler(mock_http_event: dict) -> None:
+    """
+    Checks how adapter handles exceptions raised in the app
+    using Exception Handler from the Starlette framework.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     path = mock_http_event["path"]
     app = Starlette()
 
@@ -412,7 +469,17 @@ def test_http_exception_handler(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", "", None]], indirect=True)
-def test_http_cycle_state(mock_http_event) -> None:
+def test_http_cycle_state(mock_http_event: dict) -> None:
+    """
+    Checks if the state transition in the HTTPCycle works correctly.
+    2 tests are executed:
+        1. "http.response.start" state should be sent before "http.response.body"
+        2. "http.response.start" can't be sent twice - "http.response.body" is
+        the next possible state.
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         await send({"type": "http.response.body", "body": b"Hello, world!"})
@@ -443,7 +510,23 @@ def test_http_cycle_state(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", "", None]], indirect=True)
-def test_http_api_gateway_base_path(mock_http_event) -> None:
+def test_http_api_gateway_base_path(mock_http_event: dict) -> None:
+    """
+    Checks how the adapter handles the `api_gateway_base_path` argument,
+    1. when it is None;
+    2. when a base path is passed. In this case we expect the adapter
+    to cut the actual base path from the path extracted from the incoming HTTP event.
+    This means, that if path in the incoming event (fixture) is "/test/hello",
+    our app should see in the scope only "/hello" as path.
+
+    **Reference**: In OpenAPI 2.0, you can use the `basePath` property to provide one or more path parts
+    that precede each path defined in the `paths` property.
+    [Source](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-import-api-basePath.html)
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
+    # Test with no api_gateway_base_path
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         assert scope["path"] == urllib.parse.unquote(mock_http_event["path"])
@@ -460,6 +543,7 @@ def test_http_api_gateway_base_path(mock_http_event) -> None:
         "statusCode": 200,
     }
 
+    # Test with api_gateway_base_path
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         assert scope["path"] == urllib.parse.unquote(
@@ -480,7 +564,18 @@ def test_http_api_gateway_base_path(mock_http_event) -> None:
 
 
 @pytest.mark.parametrize("mock_http_event", [["GET", "", None]], indirect=True)
-def test_http_text_mime_types(mock_http_event) -> None:
+def test_http_text_mime_types(mock_http_event: dict) -> None:
+    """
+    Checks how the adapter handles the `text_mime_types` argument.
+    Body in response should not be binary, since "content-type" will be set
+    to "text/plain" (and all "text/" types are automatically excluded
+    from the `TEXT_MIME_TYPES` list)
+
+    * **mock_http_event** - a fixture which gets parametrized values and returns a dict,
+    representing incoming HTTP event. Passing of parameters happens before actual test execution.
+    """
+    # Test 1: app sends response with MIME type included into the list.
+    # Expected result: body in response should be plain text (not binary).
     async def app(scope, receive, send):
         assert scope["type"] == "http"
         await send(
@@ -492,9 +587,12 @@ def test_http_text_mime_types(mock_http_event) -> None:
         )
         await send({"type": "http.response.body", "body": b"Hello, world!"})
 
+    mime_type_app_vnd_apple_pkpass = "application/vnd.apple.pkpass"
     handler = Mangum(
-        app, lifespan="off", text_mime_types=["application/vnd.apple.pkpass"]
+        app, lifespan="off", text_mime_types=[mime_type_app_vnd_apple_pkpass]
     )
+    # Check if custom MIME type was included into the list
+    assert mime_type_app_vnd_apple_pkpass in handler.text_mime_types
     response = handler(mock_http_event, {})
 
     assert response == {
@@ -504,9 +602,37 @@ def test_http_text_mime_types(mock_http_event) -> None:
         "body": "Hello, world!",
     }
 
+    # Test 2: app sends response with MIME type not included into the list.
+    # Expected result: body in response should be binary.
+    async def app(scope, receive, send):
+        assert scope["type"] == "http"
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [[b"content-type", bytes(mime_type_app_vnd_apple_pkpass, 'utf-8')]],
+            }
+        )
+        await send({"type": "http.response.body", "body": b"Hello, world!"})
+
+    handler = Mangum(app, lifespan="off")
+    response = handler(mock_http_event, {})
+
+    assert response == {
+        "statusCode": 200,
+        "isBase64Encoded": True,
+        "headers": {"content-type": mime_type_app_vnd_apple_pkpass},
+        "body": base64.b64encode(b"Hello, world!").decode(),
+    }
+
+
 
 @pytest.mark.parametrize("mock_http_event", [["GET", "", None]], indirect=True)
 def test_http_binary_gzip_response(mock_http_event) -> None:
+    """
+    Checks integration with GZipMiddleware from the Starlette frameworks,
+    which compresses content of the response.
+    """
     body = json.dumps({"abc": "defg"})
 
     async def app(scope, receive, send):
@@ -537,16 +663,20 @@ def test_http_binary_gzip_response(mock_http_event) -> None:
 @pytest.mark.parametrize(
     "mock_http_api_event",
     [
-        (["GET", None, None, ""]),
-        (["GET", None, {"name": ["me"]}, "name=me"]),
-        (["GET", None, {"name": ["me", "you"]}, "name=me&name=you"]),
         (
-            [
-                "GET",
-                None,
-                {"name": ["me", "you"], "pet": ["dog"]},
-                "name=me&name=you&pet=dog",
-            ]
+            ["GET", None, None, ""]
+        ),
+        (
+            ["GET", None, {"name": ["me"]},
+            "name=me"]
+        ),
+        (
+            ["GET", None, {"name": ["me", "you"]},
+            "name=me&name=you"]
+        ),
+        (
+            ["GET", None, {"name": ["me", "you"], "pet": ["dog"]},
+            "name=me&name=you&pet=dog"]
         ),
     ],
     indirect=["mock_http_api_event"],

@@ -3,6 +3,10 @@ import pytest
 
 @pytest.fixture
 def mock_http_event(request):
+    """
+    Gets parametrized values from executed tests via the built-in fixture `request`
+    and uses them for construction of the returned object.
+    """
     method = request.param[0]
     body = request.param[1]
     multi_value_query_parameters = request.param[2]
@@ -63,7 +67,7 @@ def mock_http_event(request):
 
 
 @pytest.fixture
-def mock_http_api_event(request):
+def mock_http_api_event(request):  # TODO: what is the difference with the first fixture? What are the sources?
     method = request.param[0]
     body = request.param[1]
     multi_value_query_parameters = request.param[2]
